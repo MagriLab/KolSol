@@ -1,2 +1,5 @@
 numpy
 einops
+torch
+
+mypy
