@@ -13,7 +13,7 @@ class KolSol:
         """Kolmogorov Flow Solver Class.
 
         Implementation of a Fourier-Galerkin pseudospectral solver for the
-        incompressible navier-stokes equations as described by Canuto.
+        incompressible navier-stokes equations as described by Canuto, CH [7.2].
 
         Parameters
         ----------
@@ -64,7 +64,7 @@ class KolSol:
             Time-derivative of the velocity field in the Fourier domain.
         """
 
-        # TODO :: Add equation numbers for reference to the Canuto book.
+        # Canuto EQ [7.2.12]
         aapt = np.array([[self.aap(u_hat[..., u_j], u_hat[..., u_i])for u_j in range(self.ndim)] for u_i in range(self.ndim)])
         f_hat = np.einsum('...t, ut... -> ...u', -self.nabla, aapt)
 
@@ -73,12 +73,15 @@ class KolSol:
 
         kk_fk = self.kt * einops.repeat(k_dot_f, '... -> ... b', b=self.ndim)
 
+        # Canuto EQ [7.2.11]
         du_hat_dt = (f_hat + self.f) - kk_fk - (1.0 / self.re) * einops.repeat(self.kk, '... -> ... b', b=self.ndim) * u_hat
         return du_hat_dt
 
     def aap(self, f1: np.ndarray, f2: np.ndarray) -> np.ndarray:
 
         """Anti-aliased product using padding.
+
+        See Canuto, CH [3.2.2].
 
         Parameters
         ----------
