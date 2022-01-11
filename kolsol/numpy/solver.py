@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import List, Optional
 
 import einops
 import numpy as np
@@ -214,3 +214,42 @@ class KolSol:
         t_hat = t_hat_padded[tuple(slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)) + tuple([...])]
 
         return t_hat
+
+    def random_field(self, magnitude: float, sigma: float, k_offset: Optional[List[int]] = None) -> np.array:
+
+        """Generate random velocity field in the Fourier domain.
+
+        Parameters
+        ----------
+        magnitude: float
+            Magnitude of the field.
+        sigma: float
+            Standard deviation of the field.
+        k_offset: Optional[List[int]]
+            Wavenumber offsets for each dimension.
+
+        Returns
+        -------
+        u_hat: np.ndarray
+            Random field in the Fourier domain.
+        """
+
+        if k_offset and len(k_offset) != self.ndim:
+            raise ValueError('Must provide offsets for each dimension.')
+
+        random_field = np.random.uniform(size=(*(self.nk_grid for _ in range(self.ndim)), self.ndim))
+        delta = np.zeros_like(random_field)
+
+        if k_offset:
+            for idx, k in enumerate(k_offset):
+                delta[..., idx] -= k
+
+        mag = np.exp(-0.5 * (np.sqrt(np.sum(np.square(self.kt - delta), axis=-1)) / sigma ** 2))
+        mag = magnitude * mag / np.sqrt(2.0 * np.pi * sigma ** 2)
+
+        u_hat = mag * np.exp(2.0j * np.pi * random_field)
+
+        u_hat = np.fft.irfftn(np.fft.ifftshift(u_hat, axes=range(self.ndim)), s=u_hat.shape[:self.ndim], axes=range(self.ndim))
+        u_hat = np.fft.fftshift(np.fft.fftn(u_hat, s=u_hat.shape[:self.ndim], axes=range(self.ndim)), axes=range(self.ndim))
+
+        return u_hat
