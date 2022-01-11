@@ -245,6 +245,7 @@ class KolSol:
                 delta[..., idx] -= k
 
         mag = np.exp(-0.5 * (np.sqrt(np.sum(np.square(self.kt - delta), axis=-1)) / sigma ** 2))
+        mag = einops.repeat(mag, '... -> ... b', b=self.ndim)
         mag = magnitude * mag / np.sqrt(2.0 * np.pi * sigma ** 2)
 
         u_hat = mag * np.exp(2.0j * np.pi * random_field)
