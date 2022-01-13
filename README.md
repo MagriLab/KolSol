@@ -16,6 +16,13 @@ As a spectral method is employed, using a larger quantity of wavenumbers will re
 <img src="media/flowfield.png"/>
 </p>
 
+## **Installation:**
+To install KolSol, please clone the repository and then run the following command:
+
+```shell
+$ python setup.py install
+```
+
 ## **Solver Example:**
 
 ```python
