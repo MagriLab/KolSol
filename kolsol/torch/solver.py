@@ -4,10 +4,11 @@ import einops
 import numpy as np
 import torch
 
-from kolsol.utils.enums import eDirection
+from ..base.base_solver import BaseKolSol
+from ..utils.enums import eDirection
 
 
-class KolSol:
+class KolSol(BaseKolSol):
 
     def __init__(self, nk: int, nf: int, re: float, ndim: int = 2) -> None:
 
@@ -28,16 +29,7 @@ class KolSol:
             Number of dimensions to solve for.
         """
 
-        if not nk % 2 == 0:
-            raise ValueError('Should pass and even number of wavenumbers, k.')
-
-        self.nk = nk
-        self.nf = nf
-        self.re = re
-        self.ndim = ndim
-
-        self.nk_grid = 2 * self.nk + 1
-        self.mk_grid = 4 * self.nk + 1
+        super().__init__(nk, nf, re, ndim)
 
         x = torch.linspace(0.0, 2.0 * np.pi, 2 * self.nk + 2)[:-1]
         self.xt = torch.stack(torch.meshgrid(*(x for _ in range(self.ndim)), indexing='ij'), dim=-1)
