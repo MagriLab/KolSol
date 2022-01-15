@@ -1,6 +1,6 @@
 # KolSol
 
-KolSol is a pseudospectral Kolmogorov flow solver, using the a Fourier-Galerkin approach as described by Canuto [[1]](#R1). This library contains both `NumPy` and `PyTorch` implementations to allow for autograd-compatible workflows. Please note that the implementation of the FFT within `NumPy` is much more efficient so for general usage this version is preferable.
+KolSol is a pseudospectral Kolmogorov flow solver, using a Fourier-Galerkin approach as described by Canuto [[1]](#R1). This library contains both `NumPy` and `PyTorch` implementations to allow for autograd-compatible workflows. Please note that the implementation of the FFT within `NumPy` is much more efficient so for general usage this version is preferable.
 
 The solver provides numerical solutions to the divergence-free Navier-Stokes equations:
 
