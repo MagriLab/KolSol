@@ -255,7 +255,7 @@ class KolSol(BaseKolSol):
             for idx, k in enumerate(k_offset):
                 delta[..., idx] -= k
 
-        mag = np.exp(-0.5 * (np.sqrt(np.sum(np.square(self.kt - delta), axis=-1)) / sigma ** 2))
+        mag = np.exp(-0.5 * (np.sqrt(np.sum(np.square(self.kt.numpy() - delta), axis=-1)) / sigma ** 2))
         mag = einops.repeat(mag, '... -> ... b', b=self.ndim)
         mag = magnitude * mag / np.sqrt(2.0 * np.pi * sigma ** 2)
 
