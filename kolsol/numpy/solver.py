@@ -31,10 +31,10 @@ class KolSol(BaseKolSol):
         super().__init__(nk, nf, re, ndim)
 
         x = np.linspace(0, 2.0 * np.pi, 2 * self.nk + 2)[:-1]
-        self.xt = np.stack(np.meshgrid(*(x for _ in range(self.ndim)), indexing='xy'), axis=-1)
+        self.xt = np.stack(np.meshgrid(*(x for _ in range(self.ndim)), indexing='ij'), axis=-1)
 
         k = np.fft.fftshift(np.fft.fftfreq(self.nk_grid, 1 / self.nk_grid))
-        self.kt = np.stack(np.meshgrid(*(k for _ in range(self.ndim)), indexing='xy'), axis=-1)
+        self.kt = np.stack(np.meshgrid(*(k for _ in range(self.ndim)), indexing='ij'), axis=-1)
         self.kk = np.sum(np.power(self.kt, 2), axis=-1)
 
         self.nabla = 1j * self.kt
