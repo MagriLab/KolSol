@@ -108,7 +108,7 @@ class KolSol(BaseKolSol):
         scaling = (self.mk_grid / self.nk_grid) ** self.ndim
 
         fhat = torch.stack((f1, f2), dim=-1)
-        fhat_padded = torch.zeros(([self.mk_grid for _ in range(self.ndim)] + [2]))
+        fhat_padded = torch.zeros(([self.mk_grid for _ in range(self.ndim)] + [2])).to(torch.complex64)
         fhat_padded[tuple(slice(lb, ub) for _ in range(self.ndim))] = fhat
 
         f_phys = torch.fft.irfftn(
