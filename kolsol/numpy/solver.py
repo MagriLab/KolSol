@@ -60,8 +60,9 @@ class KolSol(BaseKolSol):
         aapt = np.array([[self.aap(u_hat[..., u_j], u_hat[..., u_i])for u_j in range(self.ndim)] for u_i in range(self.ndim)])
         f_hat = np.einsum('...t, ut... -> ...u', -self.nabla, aapt)
 
-        k_dot_f = np.einsum('...u, ...u -> ...', self.kt, f_hat + self.f) / self.kk
-        k_dot_f[tuple(self.nk for _ in range(self.ndim))] = 0.0
+        with np.errstate(divide='ignore'):
+            k_dot_f = np.einsum('...u, ...u -> ...', self.kt, f_hat + self.f) / self.kk
+            k_dot_f[tuple(self.nk for _ in range(self.ndim))] = 0.0
 
         kk_fk = self.kt * einops.repeat(k_dot_f, '... -> ... b', b=self.ndim)
 
