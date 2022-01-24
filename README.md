@@ -11,6 +11,9 @@ The solver provides numerical solutions to the divergence-free Navier-Stokes equ
 As a spectral method is employed, using a larger quantity of wavenumbers will reduce the numerical error.
 <br>**Note:** Highly accurate simulations can be attained even with relatively few wavenumbers.
 
+- [x] **License:** MIT
+- [x] **Python Versions:** 3.6+
+
 ## **Flowfield:**
 <p align='center'>
 <img src="media/flowfield.png"/>
