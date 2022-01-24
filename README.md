@@ -43,7 +43,7 @@ for t in np.arange(0.0, 10.0, 0.01):
   u_hat += dt * ks.dynamics(u_hat)
 ```
 
-## **Example Data Generation:**
+## **Data Generation:**
 
 The given `generate.py` script can be used to generate simulation data for a Kolmogorov flow field, for example:
 
