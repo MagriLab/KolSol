@@ -1,5 +1,7 @@
 numpy
 einops
 torch
+tqdm
+h5py
 
 mypy

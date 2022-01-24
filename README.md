@@ -43,6 +43,26 @@ for t in np.arange(0.0, 10.0, 0.01):
   u_hat += dt * ks.dynamics(u_hat)
 ```
 
+## **Example Data Generation:**
+
+The given `generate.py` script can be used to generate simulation data for a Kolmogorov flow field, for example:
+
+```bash
+$ python generate.py --data-path .data/RE30/results.h5 --resolution 256 --re 30.0 --time-simulation 60.0
+```
+
+Running the above command results in the following file structure:
+
+```
+data
+├── RE30
+│   └── results.h5
+├── README.md
+└── generate.py
+```
+
+**Note:** Additional command-line arguments are available for customising simulations.
+
 ## **References:**
 <a id="R1">**[1]**</a> Canuto, C. (1988) Spectral methods in fluid dynamics. New York: Springer-Verlag.
 
