@@ -196,7 +196,7 @@ class KolSol(BaseKolSol):
             ishift = (nref - 2 * self.nk) // 2
             scaling = (nref / self.nk_grid) ** self.ndim
 
-            t_hat_aug = torch.zeros(([nref for _ in range(self.ndim)] + [self.ndim]), dtype=torch.complex64)
+            t_hat_aug = torch.zeros(([nref for _ in range(self.ndim)] + [self.ndim]), dtype=torch.complex64, device=self.device)
             t_hat_aug[tuple(slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)) + tuple([...])] = t_hat
 
         return scaling * torch.fft.irfftn(torch.fft.ifftshift(t_hat_aug, dim=tuple(range(self.ndim))), s=t_hat_aug.shape[:self.ndim], dim=tuple(range(self.ndim)))
