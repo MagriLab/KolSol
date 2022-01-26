@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import einops
 import numpy as np
@@ -10,7 +10,7 @@ from ..utils.enums import eDirection
 
 class KolSol(BaseKolSol):
 
-    def __init__(self, nk: int, nf: int, re: float, ndim: int = 2) -> None:
+    def __init__(self, nk: int, nf: int, re: float, ndim: int = 2, device: Union[torch.device, str] = torch.device('cpu')) -> None:
 
         """Kolmogorov Flow Solver Class.
 
@@ -31,15 +31,17 @@ class KolSol(BaseKolSol):
 
         super().__init__(nk, nf, re, ndim)
 
-        x = torch.linspace(0.0, 2.0 * np.pi, 2 * self.nk + 2)[:-1]
-        self.xt = torch.stack(torch.meshgrid(*(x for _ in range(self.ndim)), indexing='ij'), dim=-1)
+        self.device = device
 
-        k = torch.fft.fftshift(torch.fft.fftfreq(self.nk_grid, 1 / self.nk_grid))
-        self.kt = torch.stack(torch.meshgrid(*(k for _ in range(self.ndim)), indexing='ij'), dim=-1)
+        x = torch.linspace(0.0, 2.0 * np.pi, 2 * self.nk + 2)[:-1].to(self.device)
+        self.xt = torch.stack(torch.meshgrid(*(x for _ in range(self.ndim))), dim=-1)
+
+        k = torch.fft.fftshift(torch.fft.fftfreq(self.nk_grid, 1 / self.nk_grid)).to(self.device)
+        self.kt = torch.stack(torch.meshgrid(*(k for _ in range(self.ndim))), dim=-1)
         self.kk = torch.sum(torch.pow(self.kt, 2), dim=-1)
 
         self.nabla = 1j * self.kt
-        self.f = 1j * torch.zeros((*(self.nk_grid for _ in range(self.ndim)), self.ndim))
+        self.f = 1j * torch.zeros((*(self.nk_grid for _ in range(self.ndim)), self.ndim)).to(self.device)
         self.f[..., eDirection.i] = torch.fft.fftshift(torch.fft.fftn(torch.sin(self.nf * self.xt[..., eDirection.j])))
 
         # converting relevant attributes to complex
@@ -108,7 +110,7 @@ class KolSol(BaseKolSol):
         scaling = (self.mk_grid / self.nk_grid) ** self.ndim
 
         fhat = torch.stack((f1, f2), dim=-1)
-        fhat_padded = torch.zeros(([self.mk_grid for _ in range(self.ndim)] + [2])).to(torch.complex64)
+        fhat_padded = torch.zeros(([self.mk_grid for _ in range(self.ndim)] + [2]), device=self.device).to(torch.complex64)
         fhat_padded[tuple(slice(lb, ub) for _ in range(self.ndim))] = fhat
 
         f_phys = torch.fft.irfftn(
@@ -248,20 +250,21 @@ class KolSol(BaseKolSol):
         if k_offset and len(k_offset) != self.ndim:
             raise ValueError('Must provide offsets for each dimension.')
 
-        random_field = np.random.uniform(size=(*(self.nk_grid for _ in range(self.ndim)), self.ndim))
-        delta = np.zeros_like(random_field)
+        random_field = torch.from_numpy(np.random.uniform(size=(*(self.nk_grid for _ in range(self.ndim)), self.ndim))).to(self.device)
+        delta = torch.zeros_like(random_field)
 
         if k_offset:
             for idx, k in enumerate(k_offset):
                 delta[..., idx] -= k
 
-        mag = np.exp(-0.5 * (np.sqrt(np.sum(np.square(self.kt.numpy() - delta), axis=-1)) / sigma ** 2))
+        mag = torch.exp(-0.5 * (torch.sqrt(torch.sum(torch.square(self.kt - delta), dim=-1)) / sigma ** 2))
         mag = einops.repeat(mag, '... -> ... b', b=self.ndim)
         mag = magnitude * mag / np.sqrt(2.0 * np.pi * sigma ** 2)
 
-        u_hat = mag * np.exp(2.0j * np.pi * random_field)
+        u_hat = mag * torch.exp(2.0j * np.pi * random_field)
 
-        u_hat = np.fft.irfftn(np.fft.ifftshift(u_hat, axes=range(self.ndim)), s=u_hat.shape[:self.ndim], axes=range(self.ndim))
-        u_hat = np.fft.fftshift(np.fft.fftn(u_hat, s=u_hat.shape[:self.ndim], axes=range(self.ndim)), axes=range(self.ndim))
+        u_hat = torch.fft.irfftn(torch.fft.ifftshift(u_hat, dim=tuple(range(self.ndim))), s=u_hat.shape[:self.ndim], dim=tuple(range(self.ndim))) 
+        u_hat = torch.fft.fftshift(torch.fft.fftn(u_hat, s=u_hat.shape[:self.ndim], dim=tuple(range(self.ndim))), dim=tuple(range(self.ndim)))
 
-        return torch.from_numpy(u_hat)
+        return u_hat
+
