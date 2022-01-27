@@ -40,6 +40,9 @@ class KolSol(BaseKolSol):
         self.kt = torch.stack(torch.meshgrid(*(k for _ in range(self.ndim))), dim=-1)
         self.kk = torch.sum(torch.pow(self.kt, 2), dim=-1)
 
+        self.kk_div = torch.sum(torch.pow(self.kt, 2), dim=-1)
+        self.kk_div[tuple(self.nk for _ in range(self.ndim)) + tuple([...])] = 1.0
+
         self.nabla = 1j * self.kt
         self.f = 1j * torch.zeros((*(self.nk_grid for _ in range(self.ndim)), self.ndim)).to(self.device)
         self.f[..., eDirection.i] = torch.fft.fftshift(torch.fft.fftn(torch.sin(self.nf * self.xt[..., eDirection.j])))
@@ -78,7 +81,7 @@ class KolSol(BaseKolSol):
         aapt = torch.stack(uij_aapt, dim=0)
         f_hat = torch.einsum('...t, ut... -> ...u', -self.nabla, aapt)
 
-        k_dot_f = torch.einsum('...u, ...u -> ...', self.kt, f_hat + self.f) / self.kk
+        k_dot_f = torch.einsum('...u, ...u -> ...', self.kt, f_hat + self.f) / self.kk_div
         kk_fk = self.kt * einops.repeat(k_dot_f, '... -> ... b', b=self.ndim)
         kk_fk[tuple(self.nk for _ in range(self.ndim)) + tuple([...])] = 0.0
 
