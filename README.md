@@ -36,11 +36,18 @@ from kolsol.numpy.solver import KolSol
 ks = KolSol(nk=8, nf=4, re=30.0, ndim=2)
 
 # define initial conditions
-u_hat = ks.random_field(1.0, 0.001, [0, 3])
+u_hat = ks.random_field(magnitude=10.0, sigma=2.0, k_offset=[0, 3])
 
-# run simulation
-for t in np.arange(0.0, 10.0, 0.01):
+# simulate :: run over transients
+for _ in np.arange(0.0, 180.0, 0.01):
   u_hat += dt * ks.dynamics(u_hat)
+
+# simulate :: generate results
+for _ in np.arange(0.0, 300.0, 0.01):
+  u_hat += dt * ks.dynamics(u_hat)
+
+# generate physical field
+u_field = ks.fourier_to_phys(u_hat, nref=256)
 ```
 
 ## **Data Generation:**
