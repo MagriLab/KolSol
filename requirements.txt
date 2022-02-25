@@ -1,5 +1,6 @@
 numpy
 einops
+opt_einsum
 torch
 tqdm
 h5py
