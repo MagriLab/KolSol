@@ -2,6 +2,7 @@ from typing import List, Optional, Union
 
 import einops
 import numpy as np
+import opt_einsum as oe
 import torch
 
 from ..base.base_solver import BaseKolSol
@@ -79,9 +80,9 @@ class KolSol(BaseKolSol):
 
         # Canuto EQ [7.2.12]
         aapt = torch.stack(uij_aapt, dim=0)
-        f_hat = torch.einsum('...t, ut... -> ...u', -self.nabla, aapt)
+        f_hat = oe.contract('...t, ut... -> ...u', -self.nabla, aapt)
 
-        k_dot_f = torch.einsum('...u, ...u -> ...', self.kt, f_hat + self.f) / self.kk_div
+        k_dot_f = oe.contract('...u, ...u -> ...', self.kt, f_hat + self.f) / self.kk_div
         kk_fk = self.kt * einops.repeat(k_dot_f, '... -> ... b', b=self.ndim)
         kk_fk[tuple(self.nk for _ in range(self.ndim)) + tuple([...])] = 0.0
 
