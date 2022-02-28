@@ -6,9 +6,6 @@ class BaseKolSol:
 
     def __init__(self, nk: int, nf: int, re: float, ndim: int = 2) -> None:
 
-        if not nk % 2 == 0:
-            raise ValueError('Should pass and even number of wavenumbers, k.')
-
         self.nk = nk
         self.nf = nf
         self.re = re
