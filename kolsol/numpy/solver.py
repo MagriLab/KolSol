@@ -65,10 +65,10 @@ class KolSol(BaseKolSol):
             k_dot_f = oe.contract('...u, ...u -> ...', self.kt, f_hat + self.f) / self.kk
             k_dot_f[tuple(self.nk for _ in range(self.ndim))] = 0.0
 
-        kk_fk = self.kt * einops.repeat(k_dot_f, '... -> ... b', b=self.ndim)
+        kk_fk = oe.contract('...u, ... -> ...u', self.kt, k_dot_f)
 
         # Canuto EQ [7.2.11]
-        du_hat_dt = (f_hat + self.f) - kk_fk - (1.0 / self.re) * einops.repeat(self.kk, '... -> ... b', b=self.ndim) * u_hat
+        du_hat_dt = (f_hat + self.f) - kk_fk - (1.0 / self.re) * oe.contract('...u, ... -> ...u', u_hat, self.kk)
         return du_hat_dt
 
     def aap(self, f1: np.ndarray, f2: np.ndarray) -> np.ndarray:
