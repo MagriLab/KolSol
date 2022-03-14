@@ -35,10 +35,10 @@ class KolSol(BaseKolSol):
         self.device = device
 
         x = torch.linspace(0.0, 2.0 * np.pi, 2 * self.nk + 2)[:-1].to(self.device)
-        self.xt = torch.stack(torch.meshgrid(*(x for _ in range(self.ndim))), dim=-1)
+        self.xt = torch.stack(torch.meshgrid(*(x for _ in range(self.ndim)), indexing='ij'), dim=-1)
 
         k = torch.fft.fftshift(torch.fft.fftfreq(self.nk_grid, 1 / self.nk_grid)).to(self.device)
-        self.kt = torch.stack(torch.meshgrid(*(k for _ in range(self.ndim))), dim=-1)
+        self.kt = torch.stack(torch.meshgrid(*(k for _ in range(self.ndim)), indexing='ij'), dim=-1)
         self.kk = torch.sum(torch.pow(self.kt, 2), dim=-1)
 
         self.kk_div = torch.sum(torch.pow(self.kt, 2), dim=-1)
@@ -49,10 +49,10 @@ class KolSol(BaseKolSol):
         self.f[..., eDirection.i] = torch.fft.fftshift(torch.fft.fftn(torch.sin(self.nf * self.xt[..., eDirection.j])))
 
         # converting relevant attributes to complex
-        self.xt = self.xt.to(torch.complex64)
+        self.xt = self.xt.to(torch.complex128)
 
-        self.kt = self.kt.to(torch.complex64)
-        self.kk = self.kk.to(torch.complex64)
+        self.kt = self.kt.to(torch.complex128)
+        self.kk = self.kk.to(torch.complex128)
 
     def dynamics(self, u_hat: torch.Tensor) -> torch.Tensor:
 
@@ -83,7 +83,7 @@ class KolSol(BaseKolSol):
         f_hat = oe.contract('...t, ut... -> ...u', -self.nabla, aapt)
 
         k_dot_f = oe.contract('...u, ...u -> ...', self.kt, f_hat + self.f) / self.kk_div
-        k_dot_f[tuple(self.nk for _ in range(self.ndim))] = 0.0
+        k_dot_f[tuple([...]) + tuple(self.nk for _ in range(self.ndim))] = 0.0
 
         kk_fk = oe.contract('...u, ... -> ...u', self.kt, k_dot_f)
 
@@ -111,27 +111,36 @@ class KolSol(BaseKolSol):
             Anti-aliased product of the two arrays.
         """
 
+        n_leading_dims = f1.ndim - self.ndim
+        leading_dims = f1.shape[:n_leading_dims]
+
         lb, ub = self.nk, 3 * self.nk + 1
         scaling = (self.mk_grid / self.nk_grid) ** self.ndim
 
         fhat = torch.stack((f1, f2), dim=-1)
-        fhat_padded = torch.zeros(([self.mk_grid for _ in range(self.ndim)] + [2]), device=self.device).to(torch.complex64)
-        fhat_padded[tuple(slice(lb, ub) for _ in range(self.ndim))] = fhat
+
+        fhat_padded = torch.zeros(
+            size=([*leading_dims] + [self.mk_grid for _ in range(self.ndim)] + [2]),
+            dtype=torch.complex128,
+            device=self.device
+        )
+
+        fhat_padded[tuple([...]) + tuple(slice(lb, ub) for _ in range(self.ndim)) + tuple([slice(None)])] = fhat
 
         f_phys = torch.fft.irfftn(
-            torch.fft.ifftshift(fhat_padded, dim=tuple(range(self.ndim))),
-            s=fhat_padded.shape[:self.ndim],
-            dim=tuple(range(self.ndim))
+            torch.fft.ifftshift(fhat_padded, dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims))),
+            s=fhat_padded.shape[n_leading_dims:(self.ndim + n_leading_dims)],
+            dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims))
         )
 
         f1f2_hat_padded = torch.fft.fftn(
             torch.prod(f_phys, dim=-1),
-            s=f_phys.shape[:self.ndim],
-            dim=tuple(range(self.ndim))
+            s=f_phys.shape[n_leading_dims:(self.ndim + n_leading_dims)],
+            dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims))
         )
 
-        f1f2_hat_padded = scaling * torch.fft.fftshift(f1f2_hat_padded, dim=tuple(range(self.ndim)))
-        f1f2_hat = f1f2_hat_padded[tuple(slice(lb, ub) for _ in range(self.ndim))]
+        f1f2_hat_padded = scaling * torch.fft.fftshift(f1f2_hat_padded, dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims)))
+        f1f2_hat = f1f2_hat_padded[tuple([...]) + tuple(slice(lb, ub) for _ in range(self.ndim))]
 
         return f1f2_hat
 
@@ -151,11 +160,15 @@ class KolSol(BaseKolSol):
        """
 
         w_hat = self.vorticity(u_hat)
-        dissipation = torch.sum(w_hat * w_hat.conj())
-        dissipation = torch.squeeze(dissipation) / self.re / self.nk_grid ** 4
-        dissipation = dissipation.real
 
-        return dissipation
+        if self.ndim == 2:
+            dissipation = oe.contract('...ij -> ...', w_hat * torch.conj(w_hat))
+        else:
+            dissipation = oe.contract('...ijk -> ...', w_hat * torch.conj(w_hat))
+
+        dissipation /= (self.re * self.nk_grid ** (2 * self.ndim))
+
+        return dissipation.real
 
     def vorticity(self, u_hat: torch.Tensor) -> torch.Tensor:
 
@@ -174,8 +187,8 @@ class KolSol(BaseKolSol):
 
         if self.ndim == 2:
             return self.nabla[..., eDirection.j] * u_hat[..., eDirection.i] - self.nabla[..., eDirection.i] * u_hat[..., eDirection.j]
-
-        return torch.cross(self.nabla, u_hat)
+        else:
+            raise ValueError('Vorticity not currently implemented correctly for ndim=3')
 
     def fourier_to_phys(self, t_hat: torch.Tensor, nref: Optional[int] = None) -> torch.Tensor:
 
@@ -190,9 +203,12 @@ class KolSol(BaseKolSol):
 
         Returns
         -------
-        torch.Tensor
+        phys: torch.Tensor
             Field tensor in the physical domain.
         """
+
+        n_leading_dims = t_hat.ndim - (self.ndim + 1)
+        leading_dims = t_hat.shape[:n_leading_dims]
 
         if not nref:
             t_hat_aug = t_hat
@@ -201,10 +217,21 @@ class KolSol(BaseKolSol):
             ishift = (nref - 2 * self.nk) // 2
             scaling = (nref / self.nk_grid) ** self.ndim
 
-            t_hat_aug = torch.zeros(([nref for _ in range(self.ndim)] + [self.ndim]), dtype=torch.complex64, device=self.device)
-            t_hat_aug[tuple(slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)) + tuple([...])] = t_hat
+            t_hat_aug = torch.zeros(
+                size=([*leading_dims] + [nref for _ in range(self.ndim)] + [self.ndim]),
+                dtype=torch.complex128,
+                device=self.device
+            )
 
-        return scaling * torch.fft.irfftn(torch.fft.ifftshift(t_hat_aug, dim=tuple(range(self.ndim))), s=t_hat_aug.shape[:self.ndim], dim=tuple(range(self.ndim)))
+            t_hat_aug[tuple([...]) + tuple(slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)) + tuple([slice(None)])] = t_hat
+
+        phys = scaling * torch.fft.irfftn(
+            torch.fft.ifftshift(t_hat_aug, dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims))),
+            s=t_hat_aug.shape[n_leading_dims:(self.ndim + n_leading_dims)],
+            dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims))
+        )
+
+        return phys
 
     def phys_to_fourier(self, t: torch.Tensor) -> torch.Tensor:
 
@@ -221,15 +248,18 @@ class KolSol(BaseKolSol):
             Field tensor in the Fourier domain.
         """
 
-        if not t.ndim == self.ndim + 1:
-            raise ValueError('Invalid dimensions...')
+        n_leading_dims = t.ndim - (self.ndim + 1)
 
         nref = t.shape[0]
         ishift = (nref - 2 * self.nk) // 2
         scaling = (self.nk_grid / nref) ** self.ndim
 
-        t_hat_padded = scaling * torch.fft.fftshift(torch.fft.fftn(t, s=t.shape[:self.ndim], dim=tuple(range(self.ndim))), dim=tuple(range(self.ndim)))
-        t_hat = t_hat_padded[tuple(slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)) + tuple([...])]
+        t_hat_padded = scaling * torch.fft.fftshift(
+            torch.fft.fftn(t, s=t.shape[n_leading_dims:(self.ndim + n_leading_dims)], dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims))),
+            dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims))
+        )
+
+        t_hat = t_hat_padded[tuple([...]) + tuple(slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)) + tuple([slice(None)])]
 
         return t_hat
 
