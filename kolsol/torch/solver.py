@@ -38,6 +38,8 @@ class KolSol(BaseKolSol):
         self.xt = torch.stack(torch.meshgrid(*(x for _ in range(self.ndim)), indexing='ij'), dim=-1)
 
         k = torch.fft.fftshift(torch.fft.fftfreq(self.nk_grid, 1 / self.nk_grid)).to(self.device)
+
+
         self.kt = torch.stack(torch.meshgrid(*(k for _ in range(self.ndim)), indexing='ij'), dim=-1)
         self.kk = torch.sum(torch.pow(self.kt, 2), dim=-1)
 
@@ -53,6 +55,9 @@ class KolSol(BaseKolSol):
 
         self.kt = self.kt.to(torch.complex128)
         self.kk = self.kk.to(torch.complex128)
+        self.kk_div = self.kk_div.to(torch.complex128)
+
+        self.nabla = self.nabla.to(torch.complex128)
 
     def dynamics(self, u_hat: torch.Tensor) -> torch.Tensor:
 
