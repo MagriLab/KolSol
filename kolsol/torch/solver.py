@@ -255,7 +255,7 @@ class KolSol(BaseKolSol):
 
         n_leading_dims = t.ndim - (self.ndim + 1)
 
-        nref = t.shape[0]
+        nref = t.shape[n_leading_dims]
         ishift = (nref - 2 * self.nk) // 2
         scaling = (self.nk_grid / nref) ** self.ndim
 
