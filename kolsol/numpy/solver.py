@@ -57,8 +57,6 @@ class KolSol(BaseKolSol):
             Time-derivative of the velocity field in the Fourier domain.
         """
 
-        n_leading_dims = u_hat.ndim - (self.ndim + 1)
-
         # Canuto EQ [7.2.12]
         aapt = np.array([[self.aap(u_hat[..., u_j], u_hat[..., u_i]) for u_j in range(self.ndim)] for u_i in range(self.ndim)])
 
@@ -117,8 +115,7 @@ class KolSol(BaseKolSol):
             axes=range(n_leading_dims, self.ndim + n_leading_dims)
         )
 
-        f1f2_hat_padded = scaling * np.fft.fftshift(f1f2_hat_padded,
-                                                    axes=range(n_leading_dims, self.ndim + n_leading_dims))
+        f1f2_hat_padded = scaling * np.fft.fftshift(f1f2_hat_padded, axes=range(n_leading_dims, self.ndim + n_leading_dims))
         f1f2_hat = f1f2_hat_padded[tuple([...]) + tuple(slice(lb, ub) for _ in range(self.ndim))]
 
         return f1f2_hat
