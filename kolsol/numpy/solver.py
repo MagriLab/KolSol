@@ -143,7 +143,7 @@ class KolSol(BaseKolSol):
         w_hat = self.vorticity(u_hat)
 
         # generate indices for each dimension
-        g = it.cycle(string.ascii_letters)
+        g = iter(string.ascii_letters)
         idx = ''.join(next(g) for _ in range(self.ndim))
 
         dissipation = oe.contract(f'...{idx} -> ...',  w_hat * np.conj(w_hat))
