@@ -1,4 +1,5 @@
 import itertools as it
+import string
 from typing import List, Optional, Union
 
 import einops
@@ -39,8 +40,6 @@ class KolSol(BaseKolSol):
         self.xt = torch.stack(torch.meshgrid(*(x for _ in range(self.ndim)), indexing='ij'), dim=-1)
 
         k = torch.fft.fftshift(torch.fft.fftfreq(self.nk_grid, 1 / self.nk_grid)).to(self.device)
-
-
         self.kt = torch.stack(torch.meshgrid(*(k for _ in range(self.ndim)), indexing='ij'), dim=-1)
         self.kk = torch.sum(torch.pow(self.kt, 2), dim=-1)
 
@@ -48,7 +47,7 @@ class KolSol(BaseKolSol):
         self.kk_div[tuple(self.nk for _ in range(self.ndim)) + tuple([...])] = 1.0
 
         self.nabla = 1j * self.kt
-        self.f = 1j * torch.zeros((*(self.nk_grid for _ in range(self.ndim)), self.ndim)).to(self.device)
+        self.f = torch.zeros((*(self.nk_grid for _ in range(self.ndim)), self.ndim), dtype=torch.complex128).to(self.device)
         self.f[..., eDirection.i] = torch.fft.fftshift(torch.fft.fftn(torch.sin(self.nf * self.xt[..., eDirection.j])))
 
         # converting relevant attributes to complex
@@ -133,19 +132,22 @@ class KolSol(BaseKolSol):
 
         fhat_padded[tuple([...]) + tuple(slice(lb, ub) for _ in range(self.ndim)) + tuple([slice(None)])] = fhat
 
+        # define axes to work between
+        axs_lb, axs_ub = n_leading_dims, self.ndim + n_leading_dims
+
         f_phys = torch.fft.irfftn(
-            torch.fft.ifftshift(fhat_padded, dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims))),
-            s=fhat_padded.shape[n_leading_dims:(self.ndim + n_leading_dims)],
-            dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims))
+            torch.fft.ifftshift(fhat_padded, dim=tuple(range(axs_lb, axs_ub))),
+            s=fhat_padded.shape[slice(axs_lb, axs_ub)],
+            dim=tuple(range(axs_lb, axs_ub))
         )
 
         f1f2_hat_padded = torch.fft.fftn(
             torch.prod(f_phys, dim=-1),
-            s=f_phys.shape[n_leading_dims:(self.ndim + n_leading_dims)],
-            dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims))
+            s=f_phys.shape[slice(axs_lb, axs_ub)],
+            dim=tuple(range(axs_lb, axs_ub))
         )
 
-        f1f2_hat_padded = scaling * torch.fft.fftshift(f1f2_hat_padded, dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims)))
+        f1f2_hat_padded = scaling * torch.fft.fftshift(f1f2_hat_padded, dim=tuple(range(axs_lb, axs_ub)))
         f1f2_hat = f1f2_hat_padded[tuple([...]) + tuple(slice(lb, ub) for _ in range(self.ndim))]
 
         return f1f2_hat
@@ -167,11 +169,11 @@ class KolSol(BaseKolSol):
 
         w_hat = self.vorticity(u_hat)
 
-        if self.ndim == 2:
-            dissipation = oe.contract('...ij -> ...', w_hat * torch.conj(w_hat))
-        else:
-            dissipation = oe.contract('...ijk -> ...', w_hat * torch.conj(w_hat))
+        # generate indices for each dimension
+        g = it.cycle(string.ascii_letters)
+        idx = ''.join(next(g) for _ in range(self.ndim))
 
+        dissipation = oe.contract(f'...{idx} -> ...', w_hat * torch.conj(w_hat))
         dissipation /= (self.re * self.nk_grid ** (2 * self.ndim))
 
         return dissipation.real
@@ -231,10 +233,13 @@ class KolSol(BaseKolSol):
 
             t_hat_aug[tuple([...]) + tuple(slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)) + tuple([slice(None)])] = t_hat
 
+        # define axes to work between
+        axs_lb, axs_ub = n_leading_dims, n_leading_dims + self.ndim
+
         phys = scaling * torch.fft.irfftn(
-            torch.fft.ifftshift(t_hat_aug, dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims))),
-            s=t_hat_aug.shape[n_leading_dims:(self.ndim + n_leading_dims)],
-            dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims))
+            torch.fft.ifftshift(t_hat_aug, dim=tuple(range(axs_lb, axs_ub))),
+            s=t_hat_aug.shape[slice(axs_lb, axs_ub)],
+            dim=tuple(range(axs_lb, axs_ub))
         )
 
         return phys
@@ -260,9 +265,12 @@ class KolSol(BaseKolSol):
         ishift = (nref - 2 * self.nk) // 2
         scaling = (self.nk_grid / nref) ** self.ndim
 
+        # define axes to work between
+        axs_lb, axs_ub = n_leading_dims, n_leading_dims + self.ndim
+
         t_hat_padded = scaling * torch.fft.fftshift(
-            torch.fft.fftn(t, s=t.shape[n_leading_dims:(self.ndim + n_leading_dims)], dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims))),
-            dim=tuple(range(n_leading_dims, self.ndim + n_leading_dims))
+            torch.fft.fftn(t, s=t.shape[slice(axs_lb, axs_ub)], dim=tuple(range(axs_lb, axs_ub))),
+            dim=tuple(range(axs_lb, axs_ub))
         )
 
         t_hat = t_hat_padded[tuple([...]) + tuple(slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)) + tuple([slice(None)])]
