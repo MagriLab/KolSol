@@ -1,4 +1,5 @@
 import itertools as it
+import string
 from typing import List, Optional
 
 import einops
@@ -32,7 +33,7 @@ class KolSol(BaseKolSol):
 
         super().__init__(nk, nf, re, ndim)
 
-        x = np.linspace(0, 2.0 * np.pi, 2 * self.nk + 2)[:-1]
+        x = np.linspace(0.0, 2.0 * np.pi, 2 * self.nk + 2)[:-1]
         self.xt = np.stack(np.meshgrid(*(x for _ in range(self.ndim)), indexing='ij'), axis=-1)
 
         k = np.fft.fftshift(np.fft.fftfreq(self.nk_grid, 1 / self.nk_grid))
@@ -40,7 +41,7 @@ class KolSol(BaseKolSol):
         self.kk = np.sum(np.power(self.kt, 2), axis=-1)
 
         self.nabla = 1j * self.kt
-        self.f = 1j * np.zeros((*(self.nk_grid for _ in range(self.ndim)), self.ndim))
+        self.f = np.zeros((*(self.nk_grid for _ in range(self.ndim)), self.ndim), dtype=np.complex128)
         self.f[..., eDirection.i] = np.fft.fftshift(np.fft.fftn(np.sin(self.nf * self.xt[..., eDirection.j])))
 
     def dynamics(self, u_hat: np.ndarray) -> np.ndarray:
@@ -104,19 +105,22 @@ class KolSol(BaseKolSol):
         fhat_padded = np.zeros(([*leading_dims] + [self.mk_grid for _ in range(self.ndim)] + [2]), dtype=np.complex128)
         fhat_padded[tuple([...]) + tuple(slice(lb, ub) for _ in range(self.ndim)) + tuple([slice(None)])] = fhat
 
+        # define axes to work between
+        axs_lb, axs_ub = n_leading_dims, self.ndim + n_leading_dims
+
         f_phys = np.fft.irfftn(
-            np.fft.ifftshift(fhat_padded, axes=range(n_leading_dims, self.ndim + n_leading_dims)),
-            s=fhat_padded.shape[n_leading_dims:(self.ndim + n_leading_dims)],
-            axes=range(n_leading_dims, self.ndim + n_leading_dims)
+            np.fft.ifftshift(fhat_padded, axes=range(axs_lb, axs_ub)),
+            s=fhat_padded.shape[slice(axs_lb, axs_ub)],
+            axes=range(axs_lb, axs_ub)
         )
 
         f1f2_hat_padded = np.fft.fftn(
             np.prod(f_phys, axis=-1),
-            s=f_phys.shape[n_leading_dims:(self.ndim + n_leading_dims)],
-            axes=range(n_leading_dims, self.ndim + n_leading_dims)
+            s=f_phys.shape[slice(axs_lb, axs_ub)],
+            axes=range(axs_lb, axs_ub)
         )
 
-        f1f2_hat_padded = scaling * np.fft.fftshift(f1f2_hat_padded, axes=range(n_leading_dims, self.ndim + n_leading_dims))
+        f1f2_hat_padded = scaling * np.fft.fftshift(f1f2_hat_padded, axes=range(axs_lb, axs_ub))
         f1f2_hat = f1f2_hat_padded[tuple([...]) + tuple(slice(lb, ub) for _ in range(self.ndim))]
 
         return f1f2_hat
@@ -138,11 +142,11 @@ class KolSol(BaseKolSol):
 
         w_hat = self.vorticity(u_hat)
 
-        if self.ndim == 2:
-            dissipation = oe.contract('...ij -> ...', w_hat * np.conj(w_hat))
-        else:
-            dissipation = oe.contract('...ijk -> ...', w_hat * np.conj(w_hat))
+        # generate indices for each dimension
+        g = it.cycle(string.ascii_letters)
+        idx = ''.join(next(g) for _ in range(self.ndim))
 
+        dissipation = oe.contract(f'...{idx} -> ...',  w_hat * np.conj(w_hat))
         dissipation /= (self.re * self.nk_grid ** (2 * self.ndim))
 
         return dissipation.real
@@ -197,10 +201,13 @@ class KolSol(BaseKolSol):
             t_hat_aug = np.zeros(([*leading_dims] + [nref for _ in range(self.ndim)] + [self.ndim]), dtype=np.complex128)
             t_hat_aug[tuple([...]) + tuple(slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)) + tuple([slice(None)])] = t_hat
 
+        # define axes to work between
+        axs_lb, axs_ub = n_leading_dims, n_leading_dims + self.ndim
+
         phys = scaling * np.fft.irfftn(
-            np.fft.ifftshift(t_hat_aug, axes=range(n_leading_dims, self.ndim + n_leading_dims)),
-            s=t_hat_aug.shape[n_leading_dims:(self.ndim + n_leading_dims)],
-            axes=range(n_leading_dims, self.ndim + n_leading_dims)
+            np.fft.ifftshift(t_hat_aug, axes=range(axs_lb, axs_ub)),
+            s=t_hat_aug.shape[slice(axs_lb, axs_ub)],
+            axes=range(axs_lb, axs_ub)
         )
 
         return phys
@@ -226,9 +233,10 @@ class KolSol(BaseKolSol):
         ishift = (nref - 2 * self.nk) // 2
         scaling = (self.nk_grid / nref) ** self.ndim
 
+        axs_lb, axs_ub = n_leading_dims, n_leading_dims + self.ndim
         t_hat_padded = scaling * np.fft.fftshift(
-            np.fft.fftn(t, s=t.shape[n_leading_dims:(self.ndim + n_leading_dims)], axes=range(n_leading_dims, self.ndim + n_leading_dims)),
-            axes=range(n_leading_dims, self.ndim + n_leading_dims)
+            np.fft.fftn(t, s=t.shape[slice(axs_lb, axs_ub)], axes=range(axs_lb, axs_ub)),
+            axes=range(axs_lb, axs_ub)
         )
 
         t_hat = t_hat_padded[tuple([...]) + tuple(slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)) + tuple([slice(None)])]
