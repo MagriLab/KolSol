@@ -1,3 +1,4 @@
+import itertools as it
 from typing import List, Optional
 
 import einops
@@ -273,3 +274,35 @@ class KolSol(BaseKolSol):
         u_hat = np.fft.fftshift(np.fft.fftn(u_hat, s=u_hat.shape[:self.ndim], axes=range(self.ndim)), axes=range(self.ndim))
 
         return u_hat
+
+    def energy_spectrum(self, u_hat: np.ndarray, agg: bool = False) -> np.ndarray:
+
+        """Calculates energy spectrum of flow field.
+
+        Parameters
+        ----------
+        u_hat: np.ndarray
+            Flow-field to calculate energy spectrum of.
+        agg: bool
+            Determines whether to take a mean.
+
+        Returns
+        -------
+        ek: np.ndarray
+            Energy spectrum of given field.
+        """
+
+        n_leading_dims = u_hat.ndim - (self.ndim + 1)
+        leading_dims = u_hat.shape[:n_leading_dims]
+
+        uu = 0.5 * oe.contract('...u -> ...', u_hat * np.conj(u_hat)).real
+        intk = np.sqrt(self.kk).astype(int)
+
+        ek = np.zeros((tuple([*leading_dims]) + tuple([np.max(intk) + 1])))
+        for combo in it.product(*map(range, intk.shape)):
+            ek[tuple([...]) + tuple([intk[combo]])] += uu[tuple([...]) + tuple(combo)] / self.nk_grid ** self.ndim
+
+        if agg:
+            ek = einops.reduce(ek, '... k -> k', np.mean)
+
+        return ek
