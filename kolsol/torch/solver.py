@@ -198,6 +198,40 @@ class KolSol(BaseKolSol):
         else:
             raise ValueError('Vorticity not currently implemented correctly for ndim=3')
 
+    def pressure(self, u_hat: torch.Tensor) -> torch.Tensor:
+
+        """Calculates the pressure field.
+
+        Parameters
+        ----------
+        u_hat: torch.Tensor
+            Velocity field to calculate pressure field from.
+
+        Returns
+        -------
+        p_hat: torch.Tensor
+            Pressure field in the Fourier domain.
+        """
+
+        # Canuto EQ [7.2.12]
+        uij_aapt = []
+        for u_i in range(self.ndim):
+
+            uj_aapt = []
+            for u_j in range(self.ndim):
+                uj_aapt.append(self.aap(u_hat[..., u_j], u_hat[..., u_i]))
+
+            uij_aapt.append(torch.stack(uj_aapt, dim=0))
+
+        # Canuto EQ [7.2.12]
+        aapt = torch.stack(uij_aapt, dim=0)
+        f_hat = oe.contract('...t, ut... -> ...u', -self.nabla, aapt)
+
+        p_hat = oe.contract('...u, ...u -> ...', -self.nabla, f_hat) / self.kk_div
+        p_hat[tuple([...]) + tuple(self.nk for _ in range(self.ndim))] = 0.0
+
+        return p_hat
+
     def fourier_to_phys(self, t_hat: torch.Tensor, nref: Optional[int] = None) -> torch.Tensor:
 
         """Transform Fourier domain to physical domain.
@@ -215,6 +249,9 @@ class KolSol(BaseKolSol):
             Field tensor in the physical domain.
         """
 
+        if not len(t_hat.shape) > self.ndim:
+            raise ValueError('Please ensure that a field of the correct shape is passed in.')
+
         n_leading_dims = t_hat.ndim - (self.ndim + 1)
         leading_dims = t_hat.shape[:n_leading_dims]
 
@@ -226,7 +263,7 @@ class KolSol(BaseKolSol):
             scaling = (nref / self.nk_grid) ** self.ndim
 
             t_hat_aug = torch.zeros(
-                size=([*leading_dims] + [nref for _ in range(self.ndim)] + [self.ndim]),
+                size=([*leading_dims] + [nref for _ in range(self.ndim)] + [t_hat.shape[-1]]),
                 dtype=torch.complex128,
                 device=self.device
             )
