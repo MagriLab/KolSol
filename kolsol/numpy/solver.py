@@ -171,6 +171,30 @@ class KolSol(BaseKolSol):
 
         return np.cross(self.nabla, u_hat)
 
+    def pressure(self, u_hat: np.ndarray) -> np.ndarray:
+
+        """Calculates the pressure field.
+
+        Parameters
+        ----------
+        u_hat: np.ndarray
+            Velocity field to calculate pressure field from.
+
+        Returns
+        -------
+        p_hat: np.ndarray
+            Pressure field in the Fourier domain.
+        """
+
+        # Canuto EQ [7.2.12]
+        aapt = np.array([[self.aap(u_hat[..., u_j], u_hat[..., u_i]) for u_j in range(self.ndim)] for u_i in range(self.ndim)])
+        f_hat = oe.contract('...t, ut... -> ...u', -self.nabla, aapt)
+
+        p_hat = oe.contract('...u, ...u -> ...', -self.nabla, f_hat) / self.kk
+        p_hat[tuple([...]) + tuple(self.nk for _ in range(self.ndim))] = 0.0
+
+        return p_hat
+
     def fourier_to_phys(self, t_hat: np.ndarray, nref: Optional[int] = None) -> np.ndarray:
 
         """Transform Fourier domain to physical domain.
@@ -188,6 +212,9 @@ class KolSol(BaseKolSol):
             Field tensor in the physical domain.
         """
 
+        if not len(t_hat.shape) > self.ndim:
+            raise ValueError('Please ensure that a field of the correct shape is passed in.')
+
         n_leading_dims = t_hat.ndim - (self.ndim + 1)
         leading_dims = t_hat.shape[:n_leading_dims]
 
@@ -198,7 +225,7 @@ class KolSol(BaseKolSol):
             ishift = (nref - 2 * self.nk) // 2
             scaling = (nref / self.nk_grid) ** self.ndim
 
-            t_hat_aug = np.zeros(([*leading_dims] + [nref for _ in range(self.ndim)] + [self.ndim]), dtype=np.complex128)
+            t_hat_aug = np.zeros(([*leading_dims] + [nref for _ in range(self.ndim)] + [t_hat.shape[-1]]), dtype=np.complex128)
             t_hat_aug[tuple([...]) + tuple(slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)) + tuple([slice(None)])] = t_hat
 
         # define axes to work between
