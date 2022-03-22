@@ -190,8 +190,9 @@ class KolSol(BaseKolSol):
         aapt = np.array([[self.aap(u_hat[..., u_j], u_hat[..., u_i]) for u_j in range(self.ndim)] for u_i in range(self.ndim)])
         f_hat = oe.contract('...t, ut... -> ...u', -self.nabla, aapt)
 
-        p_hat = oe.contract('...u, ...u -> ...', -self.nabla, f_hat) / self.kk
-        p_hat[tuple([...]) + tuple(self.nk for _ in range(self.ndim))] = 0.0
+        with np.errstate(divide='ignore', invalid='ignore'):
+            p_hat = oe.contract('...u, ...u -> ...', -self.nabla, f_hat) / self.kk
+            p_hat[tuple([...]) + tuple(self.nk for _ in range(self.ndim))] = 0.0
 
         return p_hat
 
