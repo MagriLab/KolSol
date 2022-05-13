@@ -1,0 +1,25 @@
+name: "Build and publish distributions"
+
+on:
+  push:
+    tags: v*
+
+jobs:
+  build_and_publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2.4.2
+
+      - uses: actions/setup-python@v3.1.2
+
+      - run: pip install flit==3.7.1
+
+      - name: Build source and wheel dists
+        run: flit build
+
+      - name: Upload to PyPI
+        uses: pypa/gh-action-pypi-publish@v1.5.0
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
+          packages_dir: dist/
