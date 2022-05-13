@@ -1,0 +1,23 @@
+[build-system]
+requires = ["flit_core >=3.2,<4"]
+build-backend = "flit_core.buildapi"
+
+[project]
+name = "kolsol"
+authors = [{name = "Daniel Kelshaw", email = "daniel.j.kelshaw@gmail.com"}]
+readme = "README.md"
+license = {file = "LICENSE"}
+classifiers = ["License :: OSI Approved :: MIT License"]
+# version and description inferred from top-level __init__.py
+dynamic = ["version", "description"] 
+dependencies = [
+    "numpy",
+    "einops",
+    "opt_einsum",
+    "torch",
+    "tqdm",
+    "h5py"
+]	
+
+[project.urls]
+Home = "https://github.com/magrilab/kolsol"
