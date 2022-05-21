@@ -60,7 +60,9 @@ class KolSol(BaseKolSol):
         """
 
         # Canuto EQ [7.2.12]
-        aapt = np.array([[self.aap(u_hat[..., u_j], u_hat[..., u_i]) for u_j in range(self.ndim)] for u_i in range(self.ndim)])
+        aapt = np.array([
+            [self.aap(u_hat[..., u_j], u_hat[..., u_i]) for u_j in range(self.ndim)] for u_i in range(self.ndim)
+        ])
 
         f_hat = oe.contract('...t, ut... -> ...u', -self.nabla, aapt)
 
@@ -187,7 +189,10 @@ class KolSol(BaseKolSol):
         """
 
         # Canuto EQ [7.2.12]
-        aapt = np.array([[self.aap(u_hat[..., u_j], u_hat[..., u_i]) for u_j in range(self.ndim)] for u_i in range(self.ndim)])
+        aapt = np.array([
+            [self.aap(u_hat[..., u_j], u_hat[..., u_i]) for u_j in range(self.ndim)] for u_i in range(self.ndim)
+        ])
+
         f_hat = oe.contract('...t, ut... -> ...u', -self.nabla, aapt)
 
         with np.errstate(divide='ignore', invalid='ignore'):
@@ -226,8 +231,12 @@ class KolSol(BaseKolSol):
             ishift = (nref - 2 * self.nk) // 2
             scaling = (nref / self.nk_grid) ** self.ndim
 
-            t_hat_aug = np.zeros(([*leading_dims] + [nref for _ in range(self.ndim)] + [t_hat.shape[-1]]), dtype=np.complex128)
-            t_hat_aug[tuple([...]) + tuple(slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)) + tuple([slice(None)])] = t_hat
+            t_hat_aug = np.zeros(
+                ([*leading_dims] + [nref for _ in range(self.ndim)] + [t_hat.shape[-1]]), dtype=np.complex128
+            )
+
+            ishift_slice = [slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)]
+            t_hat_aug[tuple([...]) + tuple(ishift_slice) + tuple([slice(None)])] = t_hat
 
         # define axes to work between
         axs_lb, axs_ub = n_leading_dims, n_leading_dims + self.ndim
@@ -267,7 +276,8 @@ class KolSol(BaseKolSol):
             axes=range(axs_lb, axs_ub)
         )
 
-        t_hat = t_hat_padded[tuple([...]) + tuple(slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)) + tuple([slice(None)])]
+        ishift_slice = [slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)]
+        t_hat = t_hat_padded[tuple([...]) + tuple(ishift_slice) + tuple([slice(None)])]
 
         return t_hat
 
@@ -306,8 +316,17 @@ class KolSol(BaseKolSol):
 
         u_hat = mag * np.exp(2.0j * np.pi * random_field)
 
-        u_hat = np.fft.irfftn(np.fft.ifftshift(u_hat, axes=range(self.ndim)), s=u_hat.shape[:self.ndim], axes=range(self.ndim))
-        u_hat = np.fft.fftshift(np.fft.fftn(u_hat, s=u_hat.shape[:self.ndim], axes=range(self.ndim)), axes=range(self.ndim))
+        u_hat = np.fft.irfftn(
+            np.fft.ifftshift(
+                u_hat, axes=range(self.ndim)
+            ), s=u_hat.shape[:self.ndim], axes=range(self.ndim)
+        )
+
+        u_hat = np.fft.fftshift(
+            np.fft.fftn(
+                u_hat, s=u_hat.shape[:self.ndim], axes=range(self.ndim)
+            ), axes=range(self.ndim)
+        )
 
         return u_hat
 

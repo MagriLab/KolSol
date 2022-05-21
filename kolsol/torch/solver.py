@@ -13,7 +13,12 @@ from ..utils.enums import eDirection
 
 class KolSol(BaseKolSol):
 
-    def __init__(self, nk: int, nf: int, re: float, ndim: int = 2, device: Union[torch.device, str] = torch.device('cpu')) -> None:
+    def __init__(self,
+                 nk: int,
+                 nf: int,
+                 re: float,
+                 ndim: int = 2,
+                 device: Union[torch.device, str] = torch.device('cpu')) -> None:
 
         """Kolmogorov Flow Solver Class.
 
@@ -47,7 +52,11 @@ class KolSol(BaseKolSol):
         self.kk_div[tuple(self.nk for _ in range(self.ndim)) + tuple([...])] = 1.0
 
         self.nabla = 1j * self.kt
-        self.f = torch.zeros((*(self.nk_grid for _ in range(self.ndim)), self.ndim), dtype=torch.complex128).to(self.device)
+
+        self.f = torch.zeros(
+            (*(self.nk_grid for _ in range(self.ndim)), self.ndim), dtype=torch.complex128
+        ).to(self.device)
+
         self.f[..., eDirection.i] = torch.fft.fftshift(torch.fft.fftn(torch.sin(self.nf * self.xt[..., eDirection.j])))
 
         # converting relevant attributes to complex
@@ -194,9 +203,13 @@ class KolSol(BaseKolSol):
         """
 
         if self.ndim == 2:
-            return self.nabla[..., eDirection.j] * u_hat[..., eDirection.i] - self.nabla[..., eDirection.i] * u_hat[..., eDirection.j]
-        else:
-            raise ValueError('Vorticity not currently implemented correctly for ndim=3')
+
+            x_dy = self.nabla[..., eDirection.j] * u_hat[..., eDirection.i]
+            y_dx = self.nabla[..., eDirection.i] * u_hat[..., eDirection.j]
+
+            return x_dy - y_dx
+
+        raise ValueError('Vorticity not currently implemented correctly for ndim=3')
 
     def pressure(self, u_hat: torch.Tensor) -> torch.Tensor:
 
@@ -268,15 +281,16 @@ class KolSol(BaseKolSol):
                 device=self.device
             )
 
-            t_hat_aug[tuple([...]) + tuple(slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)) + tuple([slice(None)])] = t_hat
+            ishift_slice = [slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)]
+            t_hat_aug[tuple([...]) + tuple(ishift_slice) + tuple([slice(None)])] = t_hat
 
         # define axes to work between
         axs_lb, axs_ub = n_leading_dims, n_leading_dims + self.ndim
 
         phys = scaling * torch.fft.irfftn(
-            torch.fft.ifftshift(t_hat_aug, dim=tuple(range(axs_lb, axs_ub))),
-            s=t_hat_aug.shape[slice(axs_lb, axs_ub)],
-            dim=tuple(range(axs_lb, axs_ub))
+            torch.fft.ifftshift(
+                t_hat_aug, dim=tuple(range(axs_lb, axs_ub))
+            ), s=t_hat_aug.shape[slice(axs_lb, axs_ub)], dim=tuple(range(axs_lb, axs_ub))
         )
 
         return phys
@@ -306,11 +320,13 @@ class KolSol(BaseKolSol):
         axs_lb, axs_ub = n_leading_dims, n_leading_dims + self.ndim
 
         t_hat_padded = scaling * torch.fft.fftshift(
-            torch.fft.fftn(t, s=t.shape[slice(axs_lb, axs_ub)], dim=tuple(range(axs_lb, axs_ub))),
-            dim=tuple(range(axs_lb, axs_ub))
+            torch.fft.fftn(
+                t, s=t.shape[slice(axs_lb, axs_ub)], dim=tuple(range(axs_lb, axs_ub))
+            ), dim=tuple(range(axs_lb, axs_ub))
         )
 
-        t_hat = t_hat_padded[tuple([...]) + tuple(slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)) + tuple([slice(None)])]
+        ishift_slice = [slice(ishift, ishift + self.nk_grid) for _ in range(self.ndim)]
+        t_hat = t_hat_padded[tuple([...]) + tuple(ishift_slice) + tuple([slice(None)])]
 
         return t_hat
 
@@ -336,7 +352,10 @@ class KolSol(BaseKolSol):
         if k_offset and len(k_offset) != self.ndim:
             raise ValueError('Must provide offsets for each dimension.')
 
-        random_field = torch.from_numpy(np.random.uniform(size=(*(self.nk_grid for _ in range(self.ndim)), self.ndim))).to(self.device)
+        random_field = torch.from_numpy(
+            np.random.uniform(size=(*(self.nk_grid for _ in range(self.ndim)), self.ndim))
+        ).to(self.device)
+
         delta = torch.zeros_like(random_field)
 
         if k_offset:
@@ -349,8 +368,17 @@ class KolSol(BaseKolSol):
 
         u_hat = mag * torch.exp(2.0j * np.pi * random_field)
 
-        u_hat = torch.fft.irfftn(torch.fft.ifftshift(u_hat, dim=tuple(range(self.ndim))), s=u_hat.shape[:self.ndim], dim=tuple(range(self.ndim))) 
-        u_hat = torch.fft.fftshift(torch.fft.fftn(u_hat, s=u_hat.shape[:self.ndim], dim=tuple(range(self.ndim))), dim=tuple(range(self.ndim)))
+        u_hat = torch.fft.irfftn(
+            torch.fft.ifftshift(
+                u_hat, dim=tuple(range(self.ndim))
+            ), s=u_hat.shape[:self.ndim], dim=tuple(range(self.ndim))
+        )
+
+        u_hat = torch.fft.fftshift(
+            torch.fft.fftn(
+                u_hat, s=u_hat.shape[:self.ndim], dim=tuple(range(self.ndim))
+            ), dim=tuple(range(self.ndim))
+        )
 
         return u_hat
 
@@ -385,5 +413,3 @@ class KolSol(BaseKolSol):
             ek = einops.reduce(ek, '... k -> k', torch.mean)
 
         return ek
-
-
