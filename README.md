@@ -7,7 +7,7 @@ The solver provides numerical solutions to the divergence-free Navier-Stokes equ
 $$
 \begin{aligned}
   \nabla \cdot u &= 0 \\
-  \partial_t u + u \cdot \nabla u = - \nabla p + \nu \Delta u + f
+  \partial_t u + u \cdot \nabla u &= - \nabla p + \nu \Delta u + f
 \end{aligned}
 $$
 
