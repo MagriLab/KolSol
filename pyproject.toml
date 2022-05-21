@@ -13,7 +13,7 @@ readme = "README.md"
 
 license = "MIT"
 
-repository = "https://github.com/python-poetry/poetry"
+repository = "https://github.com/magrilab/kolsol"
 homepage = "https://github.com/magrilab/kolsol"
 
 classifiers = ["License :: OSI Approved :: MIT License"]
