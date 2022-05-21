@@ -36,3 +36,9 @@ mypy = "^0.931"
 pylint = "^2.13.9"
 pytest = "^7.0.1"
 
+[tool.mypy]
+python_version = 3.6
+warn_return_any = false
+warn_unused_configs = true
+ignore_missing_imports = true
+
