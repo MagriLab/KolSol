@@ -59,10 +59,6 @@ ignored-modules = [
 disable = [
   'missing-module-docstring',
   'missing-class-docstring',
-  'invalid-name',
-
-#  'C0113',
-#  'C0115',
-#  'C0103'
+  'invalid-name'
 ]
 
