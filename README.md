@@ -1,6 +1,8 @@
 # KolSol
 
-KolSol is a pseudospectral Kolmogorov flow solver, using a Fourier-Galerkin approach as described by Canuto [[1]](#R1). This library contains both `NumPy` and `PyTorch` implementations to allow for autograd-compatible workflows. Please note that the implementation of the FFT within `NumPy` is much more efficient so for general usage this version is preferable.
+KolSol is a pseudospectral Kolmogorov flow solver, using a Fourier-Galerkin approach as described by Canuto [[1]](#R1). 
+This library contains both `NumPy` and `PyTorch` implementations to allow for autograd-compatible workflows. Please note 
+that the implementation of the FFT within `NumPy` is much more efficient so for general usage this version is preferable.
 
 The solver provides numerical solutions to the divergence-free Navier-Stokes equations:
 
@@ -15,7 +17,7 @@ As a spectral method is employed, using a larger quantity of wavenumbers will re
 <br>**Note:** Highly accurate simulations can be attained even with relatively few wavenumbers.
 
 - [x] **License:** MIT
-- [x] **Python Versions:** 3.6+
+- [x] **Python Versions:** 3.6.8+
 
 ## **Flowfield:**
 <p align='center'>
@@ -26,7 +28,8 @@ As a spectral method is employed, using a larger quantity of wavenumbers will re
 To install KolSol, please clone the repository and then run the following command:
 
 ```shell
-$ python setup.py install
+$ pip install poetry
+$ poetry install
 ```
 
 ## **Solver Example:**
@@ -37,16 +40,17 @@ from kolsol.numpy.solver import KolSol
 
 # instantiate solver
 ks = KolSol(nk=8, nf=4, re=30.0, ndim=2)
+dt = 0.01
 
 # define initial conditions
 u_hat = ks.random_field(magnitude=10.0, sigma=2.0, k_offset=[0, 3])
 
 # simulate :: run over transients
-for _ in np.arange(0.0, 180.0, 0.01):
+for _ in np.arange(0.0, 180.0, dt):
   u_hat += dt * ks.dynamics(u_hat)
 
 # simulate :: generate results
-for _ in np.arange(0.0, 300.0, 0.01):
+for _ in np.arange(0.0, 300.0, dt):
   u_hat += dt * ks.dynamics(u_hat)
 
 # generate physical field
