@@ -1,4 +1,4 @@
-name: "Build and publish distributions"
+name: Build and publish distributions
 
 on:
 
@@ -17,8 +17,8 @@ jobs:
 
       - name: Install Python
         uses: actions/setup-python@v3.1.2
-          with:
-            python-version: '3.6.8'
+        with:
+          python-version: '3.6.8'
 
       - name: Upgrade pip / Install poetry
         run: |
