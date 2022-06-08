@@ -24,7 +24,7 @@ jobs:
       - name: Install Python 3
         uses: actions/setup-python@v3.1.2
         with:
-          python-version: '3.6.8'
+          python-version: '3.8.10'
 
       - name: Upgrade Pip / Install Poetry
         run: |
