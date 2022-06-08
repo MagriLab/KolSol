@@ -7,11 +7,11 @@ import numpy as np
 import opt_einsum as oe
 import torch
 
-from ..base.base_solver import BaseKolSol
+from ..base.base_solver import BaseTorchKolSol
 from ..utils.enums import eDirection
 
 
-class KolSol(BaseKolSol):
+class KolSol(BaseTorchKolSol):
 
     def __init__(self,
                  nk: int,

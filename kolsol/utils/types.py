@@ -1,6 +1,7 @@
-from typing import Union
+from typing import TypeVar
 
 import numpy as np
 import torch
 
-TypeTensor = Union[np.array, torch.Tensor]
+
+TypeTensor = TypeVar('TypeTensor', np.ndarray, torch.Tensor)

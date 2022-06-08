@@ -6,11 +6,11 @@ import einops
 import numpy as np
 import opt_einsum as oe
 
-from ..base.base_solver import BaseKolSol
+from ..base.base_solver import BaseNumpyKolSol
 from ..utils.enums import eDirection
 
 
-class KolSol(BaseKolSol):
+class KolSol(BaseNumpyKolSol):
 
     def __init__(self, nk: int, nf: int, re: float, ndim: int = 2) -> None:
 
@@ -281,7 +281,7 @@ class KolSol(BaseKolSol):
 
         return t_hat
 
-    def random_field(self, magnitude: float, sigma: float, k_offset: Optional[List[int]] = None) -> np.array:
+    def random_field(self, magnitude: float, sigma: float, k_offset: Optional[List[int]] = None) -> np.ndarray:
 
         """Generate random velocity field in the Fourier domain.
 
