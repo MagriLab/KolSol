@@ -17,7 +17,7 @@ As a spectral method is employed, using a larger quantity of wavenumbers will re
 <br>**Note:** Highly accurate simulations can be attained even with relatively few wavenumbers.
 
 - [x] **License:** MIT
-- [x] **Python Versions:** 3.6.8+
+- [x] **Python Versions:** 3.8.10+
 
 ## **Flowfield:**
 <p align='center'>
