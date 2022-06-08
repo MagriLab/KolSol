@@ -23,7 +23,7 @@ include = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.6.8"
+python = "^3.8.10"
 numpy = ">= 1.19.5"
 einops = ">= 0.3.2"
 opt-einsum = ">= 3.3.0"
@@ -37,7 +37,7 @@ pylint = ">= 2.13.9"
 pytest = ">= 7.0.1"
 
 [tool.mypy]
-python_version = 3.6
+python_version = 3.8
 warn_return_any = false
 warn_unused_configs = true
 ignore_missing_imports = true
