@@ -5,7 +5,6 @@
 [project]
 name = "kolsol"
 authors = [{name = "Daniel Kelshaw", email = "daniel.j.kelshaw@gmail.com"}]
-description = "Kolmogorov Flow Solver"
 readme = "README.md"
 license = {file = "LICENSE"}
 classifiers = ["License :: OSI Approved :: MIT License"]
