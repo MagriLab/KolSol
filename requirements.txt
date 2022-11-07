@@ -1,0 +1,11 @@
+numpy 
+einops 
+opt-einsum 
+torch 
+tqdm 
+h5py 
+matplotlib 
+
+mypy 
+pylint 
+pytest 

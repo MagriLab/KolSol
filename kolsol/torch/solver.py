@@ -405,7 +405,7 @@ class KolSol(BaseTorchKolSol):
         uu = 0.5 * oe.contract('...u -> ...', u_hat * torch.conj(u_hat)).real
         intk = torch.sqrt(self.kk).to(torch.int)
 
-        ek = torch.zeros((tuple([*leading_dims]) + tuple([np.max(intk) + 1])))
+        ek = torch.zeros((tuple([*leading_dims]) + tuple([torch.max(intk) + 1])))
         for combo in it.product(*map(range, intk.shape)):
             ek[tuple([...]) + tuple([intk[combo]])] += uu[tuple([...]) + tuple(combo)] / self.nk_grid ** self.ndim
 
