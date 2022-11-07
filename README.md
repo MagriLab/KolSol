@@ -25,11 +25,10 @@ As a spectral method is employed, using a larger quantity of wavenumbers will re
 </p>
 
 ## **Installation:**
-To install KolSol, please clone the repository and then run the following command:
+You can install KolSol from PyPI as follows
 
 ```shell
-$ pip install poetry
-$ poetry install
+$ pip install kolsol
 ```
 
 ## **Solver Example:**
