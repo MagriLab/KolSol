@@ -41,7 +41,7 @@ class KolSol(BaseTorchKolSol):
 
         self.device = device
 
-        x = torch.linspace(0.0, 2.0 * np.pi, 2 * self.nk + 2)[:-1].to(self.device)
+        x = torch.linspace(0.0, 2.0 * np.pi, self.nk_grid + 1)[:-1].to(self.device)
         self.xt = torch.stack(torch.meshgrid(*(x for _ in range(self.ndim)), indexing='ij'), dim=-1)
 
         k = torch.fft.fftshift(torch.fft.fftfreq(self.nk_grid, 1 / self.nk_grid)).to(self.device)
@@ -128,7 +128,7 @@ class KolSol(BaseTorchKolSol):
         n_leading_dims = f1.ndim - self.ndim
         leading_dims = f1.shape[:n_leading_dims]
 
-        lb, ub = self.nk, 3 * self.nk + 1
+        lb, ub = self.nk, 3 * self.nk
         scaling = (self.mk_grid / self.nk_grid) ** self.ndim
 
         fhat = torch.stack((f1, f2), dim=-1)

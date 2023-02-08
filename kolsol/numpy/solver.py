@@ -33,7 +33,7 @@ class KolSol(BaseNumpyKolSol):
 
         super().__init__(nk, nf, re, ndim)
 
-        x = np.linspace(0.0, 2.0 * np.pi, 2 * self.nk + 2)[:-1]
+        x = np.linspace(0.0, 2.0 * np.pi, self.nk_grid + 1)[:-1]
         self.xt = np.stack(np.meshgrid(*(x for _ in range(self.ndim)), indexing='ij'), axis=-1)
 
         k = np.fft.fftshift(np.fft.fftfreq(self.nk_grid, 1 / self.nk_grid))
@@ -99,7 +99,7 @@ class KolSol(BaseNumpyKolSol):
         n_leading_dims = f1.ndim - self.ndim
         leading_dims = f1.shape[:n_leading_dims]
 
-        lb, ub = self.nk, 3 * self.nk + 1
+        lb, ub = self.nk, 3 * self.nk
         scaling = (self.mk_grid / self.nk_grid) ** self.ndim
 
         fhat = np.stack((f1, f2), axis=-1)
