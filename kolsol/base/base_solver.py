@@ -21,8 +21,8 @@ class BaseNumpyKolSol:
         self.re = re
         self.ndim = ndim
 
-        self.nk_grid = 2 * self.nk
-        self.mk_grid = 4 * self.nk
+        self.nk_grid = 2 * self.nk + 1
+        self.mk_grid = 4 * self.nk + 1
 
     def dynamics(self, u_hat: np.ndarray) -> np.ndarray:
 
@@ -51,8 +51,8 @@ class BaseTorchKolSol:
         self.re = re
         self.ndim = ndim
 
-        self.nk_grid = 2 * self.nk
-        self.mk_grid = 4 * self.nk
+        self.nk_grid = 2 * self.nk + 1
+        self.mk_grid = 4 * self.nk + 1
 
     def dynamics(self, u_hat: torch.Tensor) -> torch.Tensor:
 

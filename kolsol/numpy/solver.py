@@ -99,7 +99,7 @@ class KolSol(BaseNumpyKolSol):
         n_leading_dims = f1.ndim - self.ndim
         leading_dims = f1.shape[:n_leading_dims]
 
-        lb, ub = self.nk, 3 * self.nk
+        lb, ub = self.nk, 3 * self.nk + 1
         scaling = (self.mk_grid / self.nk_grid) ** self.ndim
 
         fhat = np.stack((f1, f2), axis=-1)
