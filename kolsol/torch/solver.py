@@ -128,7 +128,7 @@ class KolSol(BaseTorchKolSol):
         n_leading_dims = f1.ndim - self.ndim
         leading_dims = f1.shape[:n_leading_dims]
 
-        lb, ub = self.nk, 3 * self.nk + 1
+        lb, ub = self.nk, 3 * self.nk
         scaling = (self.mk_grid / self.nk_grid) ** self.ndim
 
         fhat = torch.stack((f1, f2), dim=-1)
