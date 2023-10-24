@@ -240,7 +240,7 @@ class KolSol(BaseTorchKolSol):
         aapt = torch.stack(uij_aapt, dim=0)
         f_hat = oe.contract('...t, ut... -> ...u', -self.nabla, aapt)
 
-        p_hat = oe.contract('...u, ...u -> ...', -self.nabla, f_hat) / self.kk_div
+        p_hat = oe.contract('...u, ...u -> ...', -self.nabla, f_hat + self.f) / self.kk_div
         p_hat[tuple([...]) + tuple(self.nk for _ in range(self.ndim))] = 0.0
 
         return p_hat

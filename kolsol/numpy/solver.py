@@ -196,7 +196,7 @@ class KolSol(BaseNumpyKolSol):
         f_hat = oe.contract('...t, ut... -> ...u', -self.nabla, aapt)
 
         with np.errstate(divide='ignore', invalid='ignore'):
-            p_hat = oe.contract('...u, ...u -> ...', -self.nabla, f_hat) / self.kk
+            p_hat = oe.contract('...u, ...u -> ...', -self.nabla, f_hat + self.f) / self.kk
             p_hat[tuple([...]) + tuple(self.nk for _ in range(self.ndim))] = 0.0
 
         return p_hat
